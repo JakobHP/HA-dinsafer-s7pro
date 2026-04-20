@@ -50,6 +50,8 @@ class DinsaferAlarmControlPanel(CoordinatorEntity[DinsaferCoordinator], AlarmCon
         AlarmControlPanelEntityFeature.ARM_AWAY
         | AlarmControlPanelEntityFeature.ARM_HOME
     )
+    _attr_code_arm_required = False
+    _attr_code_disarm_required = False
 
     def __init__(self, coordinator: DinsaferCoordinator, entry: ConfigEntry) -> None:
         """Initialize the alarm panel."""
@@ -96,7 +98,43 @@ class DinsaferAlarmControlPanel(CoordinatorEntity[DinsaferCoordinator], AlarmCon
 
     async def async_alarm_disarm(self, code: str | None = None) -> None:
         """Disarm the alarm."""
-        await self.coordinator.async_send_command(CMD_DISARM, ARM_STATE_DISARMED)
+        # Save current state to revert if timeout occurs
+        self._previous_state = self.alarm_state
+        
+        # Set to disarming state immediately for user feedback
+        self._attr_state = AlarmControlPanelState.DISARMING
+        self.async_write_ha_state()
+        
+        try:
+            # Send the disarm command
+            await self.coordinator.async_send_command(CMD_DISARM, ARM_STATE_DISARMED)
+            
+            # Poll device state every 2 seconds until disarmed (max 60 seconds)
+            timeout = 60
+            poll_interval = 2
+            elapsed = 0
+            
+            while elapsed < timeout:
+                await asyncio.sleep(poll_interval)
+                elapsed += poll_interval
+                
+                # Check if device is now disarmed
+                current_arm_state = self.coordinator.data.get("arm_state")
+                if current_arm_state == ARM_STATE_DISARMED:
+                    # Device is disarmed, update state
+                    self._attr_state = AlarmControlPanelState.DISARMED
+                    self.async_write_ha_state()
+                    return
+            
+            # Timeout occurred - revert to previous state
+            self._attr_state = self._previous_state
+            self.async_write_ha_state()
+            
+        except Exception as err:
+            # On error, revert to previous state
+            self._attr_state = self._previous_state
+            self.async_write_ha_state()
+            raise
 
     async def async_alarm_arm_away(self, code: str | None = None) -> None:
         """Arm the alarm in away mode."""
