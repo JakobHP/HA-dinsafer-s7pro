@@ -10,6 +10,8 @@ from datetime import datetime, timedelta, timezone
 import io
 import json
 import logging
+import random
+import string
 import time
 from typing import Any
 
@@ -32,6 +34,14 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def generate_message_id() -> str:
+    """Generate message_id matching Android app format: and_<10 random alphanumeric><millisecond timestamp>."""
+    chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    random_part = "".join(random.choice(chars) for _ in range(10))
+    timestamp = str(int(time.time() * 1000))
+    return f"and_{random_part}{timestamp}"
 
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
@@ -154,12 +164,10 @@ class DinsaferCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 _LOGGER.error("DinSafer command rejected: status=%s, response=%s", status, response)
                 raise DinsaferCommandError(f"DinSafer command rejected: {response}")
 
-            data = {
-                **(self.data or self._default_data()),
-                "arm_state": target_state,
-                "last_updated": datetime.now(timezone.utc).isoformat(),
-            }
-            self.async_set_updated_data(data)
+            # Trigger immediate refresh to get actual device state from API
+            # instead of optimistically updating. This allows the alarm panel
+            # to show the intermediate "arming" state during the exit delay.
+            await self.async_request_refresh()
 
     async def _async_authenticate_and_load_metadata(self, force: bool = False) -> dict[str, Any]:
         """Authenticate and load metadata needed by the integration."""
@@ -305,7 +313,7 @@ class DinsaferCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         payload = {
             "userid": self._ws_client.user_id,
             "devtoken": self._ws_client.device_token,
-            "message_id": str(int(time.time() * 1000)),
+            "messageid": generate_message_id(),
             "home_id": self._ws_client.home_id,
             "cmd": command,
             "force": 0,

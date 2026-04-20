@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from homeassistant.components.alarm_control_panel import (
@@ -11,6 +12,7 @@ from homeassistant.components.alarm_control_panel import (
     AlarmControlPanelEntityFeature,
     AlarmControlPanelState,
 )
+from homeassistant.components.alarm_control_panel.const import STATE_ALARM_ARMING
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -55,6 +57,7 @@ class DinsaferAlarmControlPanel(CoordinatorEntity[DinsaferCoordinator], AlarmCon
         super().__init__(coordinator)
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_alarm"
+        self._previous_state: AlarmControlPanelState | None = None
 
     @property
     def device_info(self):
@@ -98,8 +101,80 @@ class DinsaferAlarmControlPanel(CoordinatorEntity[DinsaferCoordinator], AlarmCon
 
     async def async_alarm_arm_away(self, code: str | None = None) -> None:
         """Arm the alarm in away mode."""
-        await self.coordinator.async_send_command(CMD_ARM_AWAY, ARM_STATE_AWAY)
+        # Save current state to revert if timeout occurs
+        self._previous_state = self.alarm_state
+        
+        # Set to arming state immediately for user feedback
+        self._attr_state = STATE_ALARM_ARMING
+        self.async_write_ha_state()
+        
+        try:
+            # Send the arm command
+            await self.coordinator.async_send_command(CMD_ARM_AWAY, ARM_STATE_AWAY)
+            
+            # Poll device state every 2 seconds until armed (max 60 seconds)
+            timeout = 60
+            poll_interval = 2
+            elapsed = 0
+            
+            while elapsed < timeout:
+                await asyncio.sleep(poll_interval)
+                elapsed += poll_interval
+                
+                # Check if device is now armed away
+                current_arm_state = self.coordinator.data.get("arm_state")
+                if current_arm_state == ARM_STATE_AWAY:
+                    # Device is armed, update state
+                    self._attr_state = AlarmControlPanelState.ARMED_AWAY
+                    self.async_write_ha_state()
+                    return
+            
+            # Timeout occurred - revert to previous state
+            self._attr_state = self._previous_state
+            self.async_write_ha_state()
+            
+        except Exception as err:
+            # On error, revert to previous state
+            self._attr_state = self._previous_state
+            self.async_write_ha_state()
+            raise
 
     async def async_alarm_arm_home(self, code: str | None = None) -> None:
         """Arm the alarm in home mode."""
-        await self.coordinator.async_send_command(CMD_ARM_HOME, ARM_STATE_HOME)
+        # Save current state to revert if timeout occurs
+        self._previous_state = self.alarm_state
+        
+        # Set to arming state immediately for user feedback
+        self._attr_state = STATE_ALARM_ARMING
+        self.async_write_ha_state()
+        
+        try:
+            # Send the arm command
+            await self.coordinator.async_send_command(CMD_ARM_HOME, ARM_STATE_HOME)
+            
+            # Poll device state every 2 seconds until armed (max 60 seconds)
+            timeout = 60
+            poll_interval = 2
+            elapsed = 0
+            
+            while elapsed < timeout:
+                await asyncio.sleep(poll_interval)
+                elapsed += poll_interval
+                
+                # Check if device is now armed home
+                current_arm_state = self.coordinator.data.get("arm_state")
+                if current_arm_state == ARM_STATE_HOME:
+                    # Device is armed, update state
+                    self._attr_state = AlarmControlPanelState.ARMED_HOME
+                    self.async_write_ha_state()
+                    return
+            
+            # Timeout occurred - revert to previous state
+            self._attr_state = self._previous_state
+            self.async_write_ha_state()
+            
+        except Exception as err:
+            # On error, revert to previous state
+            self._attr_state = self._previous_state
+            self.async_write_ha_state()
+            raise
