@@ -1,0 +1,22 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up DinSafer S7pro",
+        "description": "Enter your DinSafer account credentials.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to DinSafer.",
+      "invalid_auth": "Invalid email or password.",
+      "unknown": "Unexpected error. Check the logs."
+    },
+    "abort": {
+      "already_configured": "This DinSafer account is already configured."
+    }
+  }
+}
