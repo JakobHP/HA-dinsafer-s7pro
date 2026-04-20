@@ -34,12 +34,15 @@ async def _validate_input(hass, data: dict[str, Any]) -> dict[str, str]:
     """Validate user input allows us to connect."""
 
     def _login_and_probe() -> dict[str, str]:
+        _LOGGER.debug("DinSafer config flow: Starting validation for %s", data[CONF_EMAIL])
         client = DinsaferClient(email=data[CONF_EMAIL], password=data[CONF_PASSWORD], debug=False)
 
         try:
             with redirect_stdout(io.StringIO()):
                 login_data = client.login()
+                _LOGGER.debug("DinSafer config flow: Login successful, got token")
                 homes = client.list_homes()
+                _LOGGER.debug("DinSafer config flow: Found %d home(s)", len(homes) if homes else 0)
 
                 if homes:
                     home_id = homes[0].get("home_id")
@@ -50,12 +53,15 @@ async def _validate_input(hass, data: dict[str, Any]) -> dict[str, str]:
                             token=client.token,
                             include_token_suffix=True,
                         )
+                        _LOGGER.debug("DinSafer config flow: Successfully retrieved home info")
         except DinsaferError as err:
+            _LOGGER.error("DinSafer config flow: DinsaferError during validation: %s", err, exc_info=True)
             message = str(err).lower()
             if "login failed" in message or "status=-12" in message or "token is illegal" in message:
                 raise InvalidAuth from err
             raise CannotConnect from err
         except OSError as err:
+            _LOGGER.error("DinSafer config flow: OSError during validation: %s", err, exc_info=True)
             raise CannotConnect from err
 
         title_email = login_data.get("Result", {}).get("mail") if isinstance(login_data, dict) else None
@@ -83,8 +89,8 @@ class DinsaferConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_auth"
             except CannotConnect:
                 errors["base"] = "cannot_connect"
-            except Exception:  # noqa: BLE001
-                _LOGGER.exception("Unexpected exception during DinSafer config flow")
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.exception("Unexpected exception during DinSafer config flow: %s", err)
                 errors["base"] = "unknown"
             else:
                 return self.async_create_entry(
