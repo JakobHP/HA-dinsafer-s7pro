@@ -4,16 +4,24 @@ from __future__ import annotations
 
 import binascii
 import json
+import logging
 import time
 from dataclasses import dataclass
 from typing import Any, cast
 
 import requests
 
+_LOGGER = logging.getLogger(__name__)
+
 try:
     import snappy  # type: ignore[import-not-found]
 except ImportError:  # pragma: no cover - optional dependency in runtime environment
     snappy = None
+
+if snappy is None:
+    _LOGGER.warning("python-snappy not available - API responses may fail to decode")
+else:
+    _LOGGER.debug("python-snappy is available")
 
 APP_ID = "naimo8Faeshoori5hooshieng6iedong"
 APP_SECRET = "Zee1weereth9phooD4yi5pheifeecoow"
@@ -155,8 +163,10 @@ class DinsaferClient:
                 if isinstance(decompressed, str):
                     decompressed = decompressed.encode("utf-8")
                 return "rc4+snappy", cast(dict[str, Any] | list[Any] | str, _decode_json_bytes(decompressed))
-            except Exception:
-                pass
+            except Exception as exc:
+                _LOGGER.error("Snappy decompression failed: %s", exc, exc_info=True)
+        else:
+            _LOGGER.error("python-snappy not installed - cannot decompress API response")
 
         try:
             return "rc4", cast(dict[str, Any] | list[Any] | str, _decode_json_bytes(decrypted))
@@ -181,14 +191,12 @@ class DinsaferClient:
                     decompressed = decompressed.encode("utf-8")
                 payload["Result"] = _decode_json_bytes(decompressed)
                 return payload
-            except Exception:
-                pass
-
-        try:
-            payload["Result"] = _decode_json_bytes(decoded)
-        except UnicodeDecodeError as exc:
-            raise DinsaferDecodeError(f"Unable to decode embedded Result payload: {exc}") from exc
-        return payload
+            except Exception as exc:
+                _LOGGER.error("Snappy decompression failed: %s", exc, exc_info=True)
+                raise DinsaferDecodeError(f"Snappy decompression failed: {exc}") from exc
+        else:
+            _LOGGER.error("python-snappy not installed - cannot decompress API response")
+            raise DinsaferDecodeError("python-snappy library not available - add to manifest.json requirements")
 
     def post(
         self,
