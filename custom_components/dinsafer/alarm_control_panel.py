@@ -118,11 +118,17 @@ class DinsaferAlarmControlPanel(CoordinatorEntity[DinsaferCoordinator], AlarmCon
                 await asyncio.sleep(poll_interval)
                 elapsed += poll_interval
                 
-                # Trigger coordinator refresh to get fresh state from API
-                await self.coordinator.async_request_refresh()
+                # Get fresh state directly from API without triggering coordinator update
+                try:
+                    device_state = await self.hass.async_add_executor_job(
+                        self.coordinator._get_state_via_http
+                    )
+                    current_arm_state = device_state.get("arm_state")
+                except Exception:
+                    # If polling fails, continue loop and try again
+                    continue
                 
                 # Check if device is now disarmed
-                current_arm_state = self.coordinator.data.get("arm_state")
                 if current_arm_state == ARM_STATE_DISARMED:
                     # Device is disarmed, update state
                     self._attr_state = AlarmControlPanelState.DISARMED
@@ -161,11 +167,17 @@ class DinsaferAlarmControlPanel(CoordinatorEntity[DinsaferCoordinator], AlarmCon
                 await asyncio.sleep(poll_interval)
                 elapsed += poll_interval
                 
-                # Trigger coordinator refresh to get fresh state from API
-                await self.coordinator.async_request_refresh()
+                # Get fresh state directly from API without triggering coordinator update
+                try:
+                    device_state = await self.hass.async_add_executor_job(
+                        self.coordinator._get_state_via_http
+                    )
+                    current_arm_state = device_state.get("arm_state")
+                except Exception:
+                    # If polling fails, continue loop and try again
+                    continue
                 
                 # Check if device is now armed away
-                current_arm_state = self.coordinator.data.get("arm_state")
                 if current_arm_state == ARM_STATE_AWAY:
                     # Device is armed, update state
                     self._attr_state = AlarmControlPanelState.ARMED_AWAY
@@ -204,11 +216,17 @@ class DinsaferAlarmControlPanel(CoordinatorEntity[DinsaferCoordinator], AlarmCon
                 await asyncio.sleep(poll_interval)
                 elapsed += poll_interval
                 
-                # Trigger coordinator refresh to get fresh state from API
-                await self.coordinator.async_request_refresh()
+                # Get fresh state directly from API without triggering coordinator update
+                try:
+                    device_state = await self.hass.async_add_executor_job(
+                        self.coordinator._get_state_via_http
+                    )
+                    current_arm_state = device_state.get("arm_state")
+                except Exception:
+                    # If polling fails, continue loop and try again
+                    continue
                 
                 # Check if device is now armed home
-                current_arm_state = self.coordinator.data.get("arm_state")
                 if current_arm_state == ARM_STATE_HOME:
                     # Device is armed, update state
                     self._attr_state = AlarmControlPanelState.ARMED_HOME
