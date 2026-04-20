@@ -137,8 +137,8 @@ class DinsaferCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def async_send_command(self, command: str, target_state: int) -> None:
         """Send an arm/disarm command to the DinSafer panel."""
         async with self._command_lock:
-            if not self._ws_client.token or not self._ws_client.device_token or not self._ws_client.home_id:
-                await self._async_authenticate_and_load_metadata(force=True)
+            # Always refresh authentication before sending commands to avoid stale token errors
+            await self._async_authenticate_and_load_metadata(force=True)
 
             try:
                 response = await self.hass.async_add_executor_job(
@@ -151,6 +151,7 @@ class DinsaferCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             status = response.get("Status") if isinstance(response, dict) else None
             if status != 1:
+                _LOGGER.error("DinSafer command rejected: status=%s, response=%s", status, response)
                 raise DinsaferCommandError(f"DinSafer command rejected: {response}")
 
             data = {
@@ -277,8 +278,8 @@ class DinsaferCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 include_token_suffix=True,
             )
 
-        if not isinstance(result.payload, dict):
-            raise DinsaferError("Unexpected search-devices response payload")
+        if not result.payload or not isinstance(result.payload, dict):
+            raise DinsaferError(f"Invalid response from search-devices: {result.payload}")
 
         devices = result.payload.get("Result", {}).get("devices", [])
         if not devices or not isinstance(devices[0], dict):
