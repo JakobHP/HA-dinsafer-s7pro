@@ -118,6 +118,9 @@ class DinsaferAlarmControlPanel(CoordinatorEntity[DinsaferCoordinator], AlarmCon
                 await asyncio.sleep(poll_interval)
                 elapsed += poll_interval
                 
+                # Trigger coordinator refresh to get fresh state from API
+                await self.coordinator.async_request_refresh()
+                
                 # Check if device is now disarmed
                 current_arm_state = self.coordinator.data.get("arm_state")
                 if current_arm_state == ARM_STATE_DISARMED:
@@ -158,6 +161,9 @@ class DinsaferAlarmControlPanel(CoordinatorEntity[DinsaferCoordinator], AlarmCon
                 await asyncio.sleep(poll_interval)
                 elapsed += poll_interval
                 
+                # Trigger coordinator refresh to get fresh state from API
+                await self.coordinator.async_request_refresh()
+                
                 # Check if device is now armed away
                 current_arm_state = self.coordinator.data.get("arm_state")
                 if current_arm_state == ARM_STATE_AWAY:
@@ -197,6 +203,9 @@ class DinsaferAlarmControlPanel(CoordinatorEntity[DinsaferCoordinator], AlarmCon
             while elapsed < timeout:
                 await asyncio.sleep(poll_interval)
                 elapsed += poll_interval
+                
+                # Trigger coordinator refresh to get fresh state from API
+                await self.coordinator.async_request_refresh()
                 
                 # Check if device is now armed home
                 current_arm_state = self.coordinator.data.get("arm_state")

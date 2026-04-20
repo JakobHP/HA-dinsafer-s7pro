@@ -164,11 +164,6 @@ class DinsaferCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 _LOGGER.error("DinSafer command rejected: status=%s, response=%s", status, response)
                 raise DinsaferCommandError(f"DinSafer command rejected: {response}")
 
-            # Trigger immediate refresh to get actual device state from API
-            # instead of optimistically updating. This allows the alarm panel
-            # to show the intermediate "arming" state during the exit delay.
-            await self.async_request_refresh()
-
     async def _async_authenticate_and_load_metadata(self, force: bool = False) -> dict[str, Any]:
         """Authenticate and load metadata needed by the integration."""
         if not force and self._ws_client.token and self.data is not None:
