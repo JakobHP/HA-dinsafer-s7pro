@@ -12,7 +12,6 @@ from homeassistant.components.alarm_control_panel import (
     AlarmControlPanelEntityFeature,
     AlarmControlPanelState,
 )
-from homeassistant.components.alarm_control_panel.const import STATE_ALARM_ARMING
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -105,7 +104,7 @@ class DinsaferAlarmControlPanel(CoordinatorEntity[DinsaferCoordinator], AlarmCon
         self._previous_state = self.alarm_state
         
         # Set to arming state immediately for user feedback
-        self._attr_state = STATE_ALARM_ARMING
+        self._attr_state = AlarmControlPanelState.ARMING
         self.async_write_ha_state()
         
         try:
@@ -145,7 +144,7 @@ class DinsaferAlarmControlPanel(CoordinatorEntity[DinsaferCoordinator], AlarmCon
         self._previous_state = self.alarm_state
         
         # Set to arming state immediately for user feedback
-        self._attr_state = STATE_ALARM_ARMING
+        self._attr_state = AlarmControlPanelState.ARMING
         self.async_write_ha_state()
         
         try:
