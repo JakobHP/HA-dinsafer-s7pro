@@ -11,12 +11,12 @@ from typing import Any
 
 import voluptuous as vol
 
-from dinsafer_poc import APP_ID, DinsaferClient, DinsaferError
 from homeassistant import config_entries
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 
+from .api import APP_ID, DinsaferClient, DinsaferError
 from .const import DOMAIN, NAME
 
 _LOGGER = logging.getLogger(__name__)

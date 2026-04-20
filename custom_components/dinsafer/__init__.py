@@ -13,14 +13,13 @@ import logging
 import time
 from typing import Any
 
-from dinsafer_poc import APP_ID, DinsaferError
-from dinsafer_websocket import DinsaferWebSocketClient
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from .api import APP_ID, DinsaferError, DinsaferWebSocketClient
 from .const import (
     CONF_EMAIL,
     CONF_PASSWORD,
